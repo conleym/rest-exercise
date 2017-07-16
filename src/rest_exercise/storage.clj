@@ -53,6 +53,9 @@
 ;; set of entries
 (def ^:private table (ref #{}))
 
+;; has init been accomplished? used to avoid re-init on hot-reload.
+(def ^:private initialized (ref nil))
+
 ;; set of name/context pairs, used to simulate a unique index
 ;; on a database table.
 (def ^:private unique-index (ref (hash-set)))
@@ -122,8 +125,11 @@
 (defn init
   "Initialize the storage subsystem."
   []
-  (log/info "Initializing storage subsystem.")
-  (let [csv-file (resource "interview-callerid-data.csv")]
-    (with-open [reader (io/reader csv-file :encoding "UTF-8")]
-      (load-csv-records (csv/read-csv reader))))
-  (log/info "Initialization complete. Added" (count @table) "entries."))
+  (if-not @initialized
+    (do
+     (log/info "Initializing storage subsystem.")
+     (let [csv-file (resource "interview-callerid-data.csv")]
+       (with-open [reader (io/reader csv-file :encoding "UTF-8")]
+         (load-csv-records (csv/read-csv reader))))
+     (dosync (ref-set initialized true))
+     (log/info "Initialization complete. Added" (count @table) "entries."))))
