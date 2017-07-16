@@ -7,8 +7,7 @@
             [ring.util.response :refer [response created redirect]]
             [compojure.core :refer :all]
             [compojure.handler :as handler]
-            [compojure.route :as route]
-            [ring.util.response :as resp])
+            [compojure.route :as route])
   (:import [java.io FileNotFoundException]
              [java.sql SQLIntegrityConstraintViolationException]))
 
