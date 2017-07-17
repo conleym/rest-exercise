@@ -8,8 +8,8 @@
             [compojure.core :refer :all]
             [compojure.handler :as handler]
             [compojure.route :as route])
-  (:import [java.io FileNotFoundException]
-           [java.sql SQLIntegrityConstraintViolationException]))
+  (:import [java.sql SQLIntegrityConstraintViolationException]
+           [com.google.i18n.phonenumbers NumberParseException]))
 
 
 (def ^:const number-endpoint-name "number")
@@ -21,14 +21,19 @@
   (if-let [number (get-in request [:params :number])]
     ;; Use `into []` to force a vector. It seems cheshire can't
     ;; serialize lazy sequences.
-    (let [results (into [] (storage/find-by-number number))]
-     (log/info "Query for" number "found" (count results) "results")
-     (response {:results (storage/find-by-number number)}))
-    (r/bad-request "Missing required parameter 'number'.")))
+    (try
+      (let [canonical (storage/canonicalize-number number)
+            results (into [] (storage/find-by-number number))]
+        (log/info "Query for" number "found" (count results) "results")
+        (response {:results (storage/find-by-number number)}))
+      (catch NumberParseException e
+        (r/bad-request "Parameter 'number' was not a valid phone number.")))
+     (r/bad-request "Missing required parameter 'number'.")))
 
 
-(defn- get-number
-  [number]
+(defn- get
+  "Get a single number entry directly."
+  [number context]
   (let [result (into [] (storage/find-by-number number))]
     (if (seq result)
       (response (get result 0))
@@ -37,19 +42,26 @@
 
 (defn- post
   [request]
-  (let [params (:params request)
-        url (r/response-url request [number-endpoint-name (:number params)])]
     (try
-      (created url (storage/add-entry params))
-      ;; Already exists. Point the user to it.
-      ;; https://tools.ietf.org/html/rfc7231#section-4.3.3
-      (catch SQLIntegrityConstraintViolationException e (redirect url :see-other)))))
+      (let [new-entry (storage/ensure-entry (:params request))
+            ;; Use validated and canonicalized data from new-entry to
+            ;; build the URL. Do not use data from the request.
+            url-path-elements [number-endpoint-name (:number new-entry) (:context new-entry)]
+            url (r/response-url request url-path-elements)]
+        (try
+          (do
+            (storage/add-entry new-entry)
+            (created url new-entry))
+          ;; Already exists. Point the user to it.
+          ;; https://tools.ietf.org/html/rfc7231#section-4.3.3
+          (catch SQLIntegrityConstraintViolationException e (redirect url :see-other))))
+        (catch NumberParseException e (r/bad-request "Invalid phone number provided."))))
 
 
 (defroutes app-routes
   (GET "/query" [] query)
   (POST number-endpoint [] post)
-  (GET (str number-endpoint "/:number") [number] (get-number number))
+  (GET (str number-endpoint "/:number/:context") [number context] (get number context))
   (route/not-found r/not-found))
 
 

@@ -3,7 +3,22 @@
             [clojure.data.csv :as csv]
             [clojure.java.io :as io])
   (:import [java.io FileNotFoundException]
-           [java.sql SQLIntegrityConstraintViolationException]))
+           [java.sql SQLIntegrityConstraintViolationException]
+           [com.google.i18n.phonenumbers PhoneNumberUtil PhoneNumberUtil$PhoneNumberFormat]))
+
+(def ^:private ^:const default-region-code "US")
+
+
+(defn canonicalize-number
+  "Parse a phone number and convert to an E.164 string.
+
+  Throws com.google.i18n.phonenumbers.NumberFormatException if the
+  number is invalid."
+  [phone-number-str]
+  (let [pnu (PhoneNumberUtil/getInstance)
+        parsed (.parse pnu phone-number-str default-region-code)]
+    (.format pnu parsed PhoneNumberUtil$PhoneNumberFormat/E164)))
+
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; Types
@@ -14,14 +29,15 @@
   Object
   (toString
     [_]
-    (str "name: " name
-         " number: " number
-         " context: " context)))
+    (str "{name: '" name
+         "' number: '" number
+         "' context: '" context "'}")))
+
 
 (defn- seq-to-entry
   "Create a new storage entry representing the data in the sequence."
   [[number context name]]
-  (PhoneNumberEntry. name number context))
+  (PhoneNumberEntry. name (canonicalize-number number) context))
 
 
 (defn ensure-entry
@@ -36,8 +52,8 @@
   Object
   (toString
     [_]
-    (str "number: " number
-         " context: " context)))
+    (str "{number: '" number
+         "' context: '" context "'}")))
 
 
 (defn- index-entry-for
@@ -50,59 +66,53 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ;; In-memory database table (set of PhoneNumberEntries) and unique
-;; index (set of PhoneNumberUniqueIndexEntries).
+;; index (map of PhoneNumberUniqueIndexEntries to corresponding
+;; PhoneNumberEntries).
 (def ^:private state (ref {:table #{}
-                           :index #{}}))
+                           :index {}}))
 
 ;; has init been accomplished? used to avoid re-init on hot-reload.
 (def ^:private initialized (ref nil))
 
 
-(defn- constraint-violated-by?
+(defn- index-lookup-by-entry
   [new-index-entry]
-  (contains? (:index @state) new-index-entry))
+  (get (:index @state) new-index-entry))
+
+
+(defn find-by-number-and-context
+  [number context]
+  (index-lookup-by-entry (PhoneNumberUniqueIndexEntry. number context)))
 
 
 (defn- maybe-throw
-  [throw-on-violations new-index-entry]
-  (if throw-on-violations
-    (throw (SQLIntegrityConstraintViolationException.
-            (str "Unique constraint violation: " new-index-entry)))
-    (log/warn "Unique constraint violation: " new-index-entry)))
-
-
-(defn- add-entry-impl
-  "Add a PhoneNumberEntry to storage.
-  Throws java.sql.SQLIntegrityConstraintViolationException if the
-  unique index constraint is violated.
-  "
-  ([new-entry]
-   (add-entry-impl new-entry true))
-  ([new-entry throw-on-violations]
-  (dosync
-   (let [new-index-entry (index-entry-for new-entry)]
-     ;; Add an entry only if it does not violate the uniqueness constraint.
-     (if (constraint-violated-by? new-index-entry)
-       (maybe-throw throw-on-violations new-index-entry)
-       (let [new-state {:table (conj (:table @state) new-entry)
-                        :index (conj (:index @state) new-index-entry)}]
-         (ref-set state new-state)))
-     new-entry))))
-
+  [throw-on-violations new-entry old-entry]
+  (let [msg (str "Unique constraint violation: "
+                 new-entry
+                 " conflicts with "
+                 old-entry)]
+    (if throw-on-violations
+      (throw (SQLIntegrityConstraintViolationException. msg))
+      (log/warn msg))))
 
 
 (defn add-entry
-  "Add a new entry to storage.
-  Accepts any of the following:
-  - A PhoneNumberEntry instance
-  - A map containing :name, :number, and :context keys.
-  - A sequence of [number, context, name].
-
-  Throws SQLIntegrityConstraintViolationException if the number and
-  context already appear in an entry in storage.
-"
-  ([entry]
-   (add-entry-impl (ensure-entry entry))))
+  "Add a PhoneNumberEntry to storage.
+  Throws java.sql.SQLIntegrityConstraintViolationException if the
+  unique index constraint is violated."
+  ([new-entry]
+   (add-entry new-entry true))
+  ([new-entry throw-on-violations]
+  (dosync
+   (let [new-index-entry (index-entry-for new-entry)
+         old-entry (index-lookup-by-entry new-index-entry)]
+     ;; Add an entry only if it does not violate the uniqueness constraint.
+     (if-not (nil? old-entry)
+       (maybe-throw throw-on-violations new-entry old-entry)
+       (let [new-state {:table (conj (:table @state) new-entry)
+                        :index (assoc (:index @state) new-index-entry new-entry)}]
+         (ref-set state new-state)))
+     new-entry))))
 
 
 (defn find-by-number
@@ -125,7 +135,7 @@
 
 (defn- load-add-entry
   [entry]
-  (add-entry-impl entry false))
+  (add-entry entry false))
 
 
 (defn- load-csv-record
