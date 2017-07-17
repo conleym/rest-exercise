@@ -15,7 +15,9 @@
                  ;; HTTP status code constants
                  [metosin/ring-http-response "0.9.0"]
                  ;; JSON serialization (uses old ring-core)
-                 [ring/ring-json "0.4.0" :exclusions [ring.ring-core]]]
+                 [ring/ring-json "0.4.0" :exclusions [ring.ring-core]]
+                 ;; Phone number handling. Appears to support E.164.
+                 [com.googlecode.libphonenumber/libphonenumber "8.6.0"]]
 
   :plugins [[lein-ring "0.12.0"]]
   :ring {:handler rest-exercise.app/app
