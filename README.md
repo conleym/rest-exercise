@@ -10,7 +10,7 @@ Simple Clojure implementation of
 
 1. Ensure you have [leiningen](https://leiningen.org/) 2.7.1 or better.
 1. Clone this repository.
-1. Run `lein ring server-headless`
+1. Run `lein ring server-headless` from any directory within the project.
 1. The service should be running on http://localhost:3000.
 
 It is possible to specify the port on which the service will run by
