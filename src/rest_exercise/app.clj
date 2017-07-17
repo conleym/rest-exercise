@@ -21,10 +21,10 @@
 (defn- query
   [request]
   (if-let [number (get-in request [:params :number])]
-    ;; Use `into []` to force a vector. It seems cheshire can't
-    ;; serialize lazy sequences.
     (try
       (let [canonical (entity/canonicalize-number number)
+            ;; Use `into []` to force a vector. It seems cheshire can't
+            ;; serialize lazy sequences.
             results (into [] (storage/find-by-number canonical))]
         (log/info "Query for" number "found" (count results) "results")
         (response {:results results}))
@@ -37,7 +37,7 @@
   "Get a single entity directly."
   [number context]
   (let [result (into [] (storage/find-by-number-and-context number context))]
-    (if (seq result)
+    (if (seq result) ;; constraints guarantee at most one result.
       (response (get result 0))
       (r/not-found))))
 
@@ -68,8 +68,9 @@
   (route/not-found r/not-found))
 
 
-;; Load data from the csv file.
-(storage/init)
+;; Load data from the csv file. Skip during AOT.
+(if-not *compile-files*
+  (storage/init))
 
 (def app
   (-> app-routes
