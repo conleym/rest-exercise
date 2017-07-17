@@ -8,7 +8,7 @@
 
 
 ;; type representing an entry in the storage system.
-(defrecord PhoneNumberEntry [name number context]
+(defrecord PhoneNumber [name number context]
   Object
   (toString
     [_]
@@ -27,14 +27,19 @@
     (.format pnu parsed PhoneNumberUtil$PhoneNumberFormat/E164)))
 
 
-(defn seq-to-entry
+(defn seq-to-entity
   "Create a new storage entry representing the data in the sequence."
   [[number context name]]
-  (PhoneNumberEntry. name (canonicalize-number number) context))
+  (PhoneNumber. name (canonicalize-number number) context))
 
 
-(defn ensure-entry
+(defn entity?
   [arg]
-  (if (instance? PhoneNumberEntry arg) arg)
-  (if (seq? arg) (seq-to-entry arg))
-  (if (map? arg) (seq-to-entry [(:number arg) (:context arg) (:name arg)])))
+  (instance? PhoneNumber arg))
+
+
+(defn to-entity
+  [arg]
+  (if (entity? arg) arg)
+  (if (seq? arg) (seq-to-entity arg))
+  (if (map? arg) (seq-to-entity [(:number arg) (:context arg) (:name arg)])))

@@ -33,7 +33,7 @@
 
 
 (defn- get-entity
-  "Get a single number entry directly."
+  "Get a single entity directly."
   [number context]
   (let [result (into [] (storage/find-by-number number))]
     (if (seq result)
@@ -44,16 +44,16 @@
 (defn- post
   [request]
     (try
-      (let [new-entry (entity/ensure-entry (:params request))
-            ;; Use validated and canonicalized data from new-entry to
+      (let [new-entity (entity/to-entity (:params request))
+            ;; Use validated and canonicalized data from new-entity to
             ;; build the URL of the new entity. Do not use data from
             ;; the request.
-            url-path-elements [number-endpoint-name (:number new-entry) (:context new-entry)]
+            url-path-elements [number-endpoint-name (:number new-entity) (:context new-entity)]
             url (r/response-url request url-path-elements)]
         (try
           (do
-            (storage/add-entry new-entry)
-            (created url new-entry))
+            (storage/add-entity new-entity)
+            (created url new-entity))
           ;; Already exists. Point the user to it, as suggested by
           ;; https://tools.ietf.org/html/rfc7231#section-4.3.3
           (catch SQLIntegrityConstraintViolationException e (redirect url :see-other))))

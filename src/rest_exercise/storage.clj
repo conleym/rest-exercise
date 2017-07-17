@@ -21,18 +21,18 @@
          "' context: '" context "'}")))
 
 
-(defn- index-entry-for
-  "Create an index entry for a given PhoneNumberEntry."
-  [entry]
-  (PhoneNumberUniqueIndexEntry. (:number entry) (:context entry)))
+(defn- create-index-entry
+  "Create an index entry for a given PhoneNumber entity."
+  [entity]
+  (PhoneNumberUniqueIndexEntry. (:number entity) (:context entity)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; State
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; In-memory database table (set of PhoneNumberEntries) and unique
+;; In-memory database table (set of PhoneNumbers) and unique
 ;; index (map of PhoneNumberUniqueIndexEntries to corresponding
-;; PhoneNumberEntries).
+;; PhoneNumbers).
 (def ^:private state (ref {:table #{}
                            :index {}}))
 
@@ -40,44 +40,44 @@
 (def ^:private initialized (ref nil))
 
 
-(defn- index-lookup-by-entry
-  [new-index-entry]
-  (get (:index @state) new-index-entry))
+(defn- index-lookup
+  [index-entry]
+  (get (:index @state) index-entry))
 
 
 (defn find-by-number-and-context
   [number context]
-  (index-lookup-by-entry (PhoneNumberUniqueIndexEntry. number context)))
+  (index-lookup (PhoneNumberUniqueIndexEntry. number context)))
 
 
 (defn- maybe-throw
-  [throw-on-violations new-entry old-entry]
+  [throw-on-violations new-entity old-entity]
   (let [msg (str "Unique constraint violation: "
-                 new-entry
+                 new-entity
                  " conflicts with "
-                 old-entry)]
+                 old-entity)]
     (if throw-on-violations
       (throw (SQLIntegrityConstraintViolationException. msg))
       (log/warn msg))))
 
 
-(defn add-entry
-  "Add a PhoneNumberEntry to storage.
+(defn add-entity
+  "Add a PhoneNumber entity to storage.
   Throws java.sql.SQLIntegrityConstraintViolationException if the
   unique index constraint is violated."
-  ([new-entry]
-   (add-entry new-entry true))
-  ([new-entry throw-on-violations]
+  ([new-entity]
+   (add-entity new-entity true))
+  ([new-entity throw-on-violations]
   (dosync
-   (let [new-index-entry (index-entry-for new-entry)
-         old-entry (index-lookup-by-entry new-index-entry)]
-     ;; Add an entry only if it does not violate the uniqueness constraint.
-     (if-not (nil? old-entry)
-       (maybe-throw throw-on-violations new-entry old-entry)
-       (let [new-state {:table (conj (:table @state) new-entry)
-                        :index (assoc (:index @state) new-index-entry new-entry)}]
+   (let [new-index-entry (create-index-entry new-entity)
+         old-entity (index-lookup new-index-entry)]
+     ;; Add a phone number only if it does not violate the uniqueness constraint.
+     (if-not (nil? old-entity)
+       (maybe-throw throw-on-violations new-entity old-entity)
+       (let [new-state {:table (conj (:table @state) new-entity)
+                        :index (assoc (:index @state) new-index-entry new-entity)}]
          (ref-set state new-state)))
-     new-entry))))
+     new-entity))))
 
 
 (defn find-by-number
@@ -98,17 +98,17 @@
     (throw (FileNotFoundException. (str filename " on classpath")))))
 
 
-(defn- load-add-entry
-  [entry]
-  (add-entry entry false))
+(defn- load-add-entity
+  [entity]
+  (add-entity entity false))
 
 
 (defn- load-csv-record
   "Load a single csv record into storage."
   [csv-record]
   (->> csv-record
-       entity/seq-to-entry
-       load-add-entry))
+       entity/seq-to-entity
+       load-add-entity))
 
 
 (defn- load-csv-records
