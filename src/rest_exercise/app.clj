@@ -24,9 +24,9 @@
     ;; serialize lazy sequences.
     (try
       (let [canonical (entity/canonicalize-number number)
-            results (into [] (storage/find-by-number number))]
+            results (into [] (storage/find-by-number canonical))]
         (log/info "Query for" number "found" (count results) "results")
-        (response {:results (storage/find-by-number number)}))
+        (response {:results results}))
       (catch NumberParseException e
         (r/bad-request "Parameter 'number' was not a valid phone number.")))
      (r/bad-request "Missing required parameter 'number'.")))
