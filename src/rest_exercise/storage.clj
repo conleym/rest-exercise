@@ -20,16 +20,15 @@
 
 (defn- seq-to-entry
   "Create a new storage entry representing the data in the sequence."
-  [args]
-  (let [[number context name] args]
-    (PhoneNumberEntry. name number context)))
+  [[number context name]]
+  (PhoneNumberEntry. name number context))
 
 
 (defn ensure-entry
   [arg]
   (if (instance? PhoneNumberEntry arg) arg)
   (if (seq? arg) (seq-to-entry arg))
-  (if (map? arg) (seq-to-entry [(:name arg) (:number arg) (:context arg)])))
+  (if (map? arg) (seq-to-entry [(:number arg) (:context arg) (:name arg)])))
 
 
 ;; type representing an entry in the storage system's unique index.
@@ -50,15 +49,26 @@
 ;; State
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-;; set of entries
-(def ^:private table (ref #{}))
+;; In-memory database table (set of PhoneNumberEntries) and unique
+;; index (set of PhoneNumberUniqueIndexEntries).
+(def ^:private state (ref {:table #{}
+                           :index #{}}))
 
 ;; has init been accomplished? used to avoid re-init on hot-reload.
 (def ^:private initialized (ref nil))
 
-;; set of name/context pairs, used to simulate a unique index
-;; on a database table.
-(def ^:private unique-index (ref (hash-set)))
+
+(defn- constraint-violated-by?
+  [new-index-entry]
+  (contains? (:index @state) new-index-entry))
+
+
+(defn- maybe-throw
+  [throw-on-violations new-index-entry]
+  (if throw-on-violations
+    (throw (SQLIntegrityConstraintViolationException.
+            (str "Unique constraint violation: " new-index-entry)))
+    (log/warn "Unique constraint violation: " new-index-entry)))
 
 
 (defn- add-entry-impl
@@ -66,22 +76,31 @@
   Throws java.sql.SQLIntegrityConstraintViolationException if the
   unique index constraint is violated.
   "
-  ([entry]
-   (add-entry-impl entry true))
-  ([entry throw-on-violations]
+  ([new-entry]
+   (add-entry-impl new-entry true))
+  ([new-entry throw-on-violations]
   (dosync
-   (let [index-entry (index-entry-for entry)]
-     (if (contains? @unique-index index-entry)
-       (if throw-on-violations
-         (throw (SQLIntegrityConstraintViolationException. (str "Unique constraint violation: " index-entry)))
-         (log/warn "Unique constraint violation: " index-entry)))
-     (ref-set table (conj @table entry))
-     (ref-set unique-index (conj @unique-index index-entry))
-     entry))))
+   (let [new-index-entry (index-entry-for new-entry)]
+     ;; Add an entry only if it does not violate the uniqueness constraint.
+     (if (constraint-violated-by? new-index-entry)
+       (maybe-throw throw-on-violations new-index-entry)
+       (let [new-state {:table (conj (:table @state) new-entry)
+                        :index (conj (:index @state) new-index-entry)}]
+         (ref-set state new-state)))
+     new-entry))))
 
 
 
 (defn add-entry
+  "Add a new entry to storage.
+  Accepts any of the following:
+  - A PhoneNumberEntry instance
+  - A map containing :name, :number, and :context keys.
+  - A sequence of [number, context, name].
+
+  Throws SQLIntegrityConstraintViolationException if the number and
+  context already appear in an entry in storage.
+"
   ([entry]
    (add-entry-impl (ensure-entry entry))))
 
@@ -89,7 +108,7 @@
 (defn find-by-number
   "Get a lazy sequence of entries matching the given phone number."
   [number]
-  (filter #(= (:number %) number) @table))
+  (filter #(= (:number %) number) (:table @state)))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; CSV initialization
@@ -104,7 +123,9 @@
     (throw (FileNotFoundException. (str filename " on classpath")))))
 
 
-(defn- asdf [entry] (add-entry-impl entry false))
+(defn- load-add-entry
+  [entry]
+  (add-entry-impl entry false))
 
 
 (defn- load-csv-record
@@ -112,7 +133,7 @@
   [csv-record]
   (->> csv-record
        seq-to-entry
-       asdf))
+       load-add-entry))
 
 
 (defn- load-csv-records
@@ -132,4 +153,4 @@
        (with-open [reader (io/reader csv-file :encoding "UTF-8")]
          (load-csv-records (csv/read-csv reader))))
      (dosync (ref-set initialized true))
-     (log/info "Initialization complete. Added" (count @table) "entries."))))
+     (log/info "Initialization complete. Added" (count (:table @state)) "entries."))))

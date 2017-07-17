@@ -29,9 +29,10 @@
 
 (defn- get-number
   [number]
-  (if-let [result (storage/find-by-number number)]
-    (response (get result 0))
-    (r/not-found)))
+  (let [result (into [] (storage/find-by-number number))]
+    (if (seq result)
+      (response (get result 0))
+      (r/not-found))))
 
 
 (defn- post
