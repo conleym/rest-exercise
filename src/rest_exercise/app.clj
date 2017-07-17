@@ -1,5 +1,6 @@
 (ns rest-exercise.app
-  (:require [rest-exercise.storage :as storage]
+  (:require [rest-exercise.entity :as entity]
+            [rest-exercise.storage :as storage]
             [rest-exercise.ring :as r]
             [clojure.tools.logging :as log]
             [ring.logger :as logger]
@@ -22,7 +23,7 @@
     ;; Use `into []` to force a vector. It seems cheshire can't
     ;; serialize lazy sequences.
     (try
-      (let [canonical (storage/canonicalize-number number)
+      (let [canonical (entity/canonicalize-number number)
             results (into [] (storage/find-by-number number))]
         (log/info "Query for" number "found" (count results) "results")
         (response {:results (storage/find-by-number number)}))
@@ -31,7 +32,7 @@
      (r/bad-request "Missing required parameter 'number'.")))
 
 
-(defn- get
+(defn- get-entity
   "Get a single number entry directly."
   [number context]
   (let [result (into [] (storage/find-by-number number))]
@@ -43,7 +44,7 @@
 (defn- post
   [request]
     (try
-      (let [new-entry (storage/ensure-entry (:params request))
+      (let [new-entry (entity/ensure-entry (:params request))
             ;; Use validated and canonicalized data from new-entry to
             ;; build the URL of the new entity. Do not use data from
             ;; the request.
@@ -62,7 +63,7 @@
 (defroutes app-routes
   (GET "/query" [] query)
   (POST number-endpoint [] post)
-  (GET (str number-endpoint "/:number/:context") [number context] (get number context))
+  (GET (str number-endpoint "/:number/:context") [number context] (get-entity number context))
   (route/not-found r/not-found))
 
 
