@@ -9,7 +9,7 @@
             [compojure.handler :as handler]
             [compojure.route :as route])
   (:import [java.io FileNotFoundException]
-             [java.sql SQLIntegrityConstraintViolationException]))
+           [java.sql SQLIntegrityConstraintViolationException]))
 
 
 (def ^:const number-endpoint-name "number")
@@ -42,6 +42,7 @@
     (try
       (created url (storage/add-entry params))
       ;; Already exists. Point the user to it.
+      ;; https://tools.ietf.org/html/rfc7231#section-4.3.3
       (catch SQLIntegrityConstraintViolationException e (redirect url :see-other)))))
 
 
