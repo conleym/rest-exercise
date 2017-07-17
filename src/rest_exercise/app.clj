@@ -36,7 +36,7 @@
 (defn- get-entity
   "Get a single entity directly."
   [number context]
-  (let [result (into [] (storage/find-by-number number))]
+  (let [result (into [] (storage/find-by-number-and-context number context))]
     (if (seq result)
       (response (get result 0))
       (r/not-found))))
