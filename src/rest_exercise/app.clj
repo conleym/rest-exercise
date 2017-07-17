@@ -1,4 +1,5 @@
 (ns rest-exercise.app
+  "Handlers, routes, and initialization for the phone number webservice."
   (:require [rest-exercise.entity :as entity]
             [rest-exercise.storage :as storage]
             [rest-exercise.ring :as r]

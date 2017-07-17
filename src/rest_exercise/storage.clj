@@ -1,4 +1,6 @@
 (ns rest-exercise.storage
+  "In-memory relational database simulation for the phone number
+  service, with facilities for loading seed data."
   (:require [rest-exercise.entity :as entity]
             [clojure.tools.logging :as log]
             [clojure.data.csv :as csv]

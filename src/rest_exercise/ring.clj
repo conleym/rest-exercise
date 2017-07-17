@@ -1,4 +1,5 @@
 (ns rest-exercise.ring
+  "Ring utilities."
   (:require [ring.util.codec :as codec]
             [ring.util.http-status :as rstatus]
             [ring.util.response :refer [response response? status]]))
