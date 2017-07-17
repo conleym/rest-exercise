@@ -45,14 +45,15 @@
     (try
       (let [new-entry (storage/ensure-entry (:params request))
             ;; Use validated and canonicalized data from new-entry to
-            ;; build the URL. Do not use data from the request.
+            ;; build the URL of the new entity. Do not use data from
+            ;; the request.
             url-path-elements [number-endpoint-name (:number new-entry) (:context new-entry)]
             url (r/response-url request url-path-elements)]
         (try
           (do
             (storage/add-entry new-entry)
             (created url new-entry))
-          ;; Already exists. Point the user to it.
+          ;; Already exists. Point the user to it, as suggested by
           ;; https://tools.ietf.org/html/rfc7231#section-4.3.3
           (catch SQLIntegrityConstraintViolationException e (redirect url :see-other))))
         (catch NumberParseException e (r/bad-request "Invalid phone number provided."))))
