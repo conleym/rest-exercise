@@ -19,7 +19,7 @@
 
 (defn canonicalize-number
   "Parse a phone number and convert to an E.164 string.
-  Throws com.google.i18n.phonenumbers.NumberFormatException if the
+  Throws com.google.i18n.phonenumbers.NumberParseException if the
   number is invalid."
   [phone-number-str]
   (let [pnu (PhoneNumberUtil/getInstance)
