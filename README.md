@@ -3,6 +3,8 @@
 Simple Clojure implementation of
 [this exercise](https://docs.google.com/document/d/1ZWcTzQdQ9zSZ8Tv4XDyCrju40_FuSJ7W6qu4-pUU-ZA/pub).
 
+The service uses [compojure](https://github.com/weavejester/compojure)
+to route requests to appropriate handlers.
 
 ## Usage
 
@@ -18,7 +20,9 @@ changing the `PORT` environment variable, e.g.,
 
 `PORT=5555 lein ring server-headless`
 
-will start the service on port 5555.
+will start the service on port 5555. See
+[lein-ring on github](https://github.com/weavejester/lein-ring)
+for more options.
 
 
 ### Building and Running Uberjars
