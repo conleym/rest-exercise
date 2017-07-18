@@ -17,6 +17,7 @@
 
 (def ^:const number-endpoint-name "number")
 (def ^:const number-endpoint (str "/" number-endpoint-name))
+(def ^:const query-endpoint "/query")
 
 
 (defn- query
@@ -59,7 +60,7 @@
   [request]
   (let [params (:params request)
         validation-result (validate-post-params params)]
-    (log/info "POST request with params " params ". Validation result: " validation-result)
+    (log/info "POST request with params" params ". Validation result:" validation-result)
     (if (seq validation-result)
       (r/bad-request (str "The following required parameters were not supplied or were blank: "
                           (str/join "," validation-result)))
@@ -81,7 +82,7 @@
 
 
 (defroutes app-routes
-  (GET "/query" [] query)
+  (GET query-endpoint [] query)
   (POST number-endpoint [] post)
   (GET (str number-endpoint "/:number/:context") [number context] (get-entity number context))
   (route/not-found r/not-found))
