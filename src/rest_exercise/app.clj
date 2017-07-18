@@ -37,10 +37,9 @@
 (defn- get-entity
   "Get a single entity directly."
   [number context]
-  (let [result (into [] (storage/find-by-number-and-context number context))]
-    (if (seq result) ;; constraints guarantee at most one result.
-      (response (get result 0))
-      (r/not-found))))
+  (if-let [result (storage/find-by-number-and-context number context)]
+    (response result)
+    (r/not-found)))
 
 
 (defn- validate-post-params
