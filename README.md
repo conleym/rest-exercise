@@ -5,6 +5,8 @@ Simple Clojure implementation of
 
 The service uses [compojure](https://github.com/weavejester/compojure)
 to route requests to appropriate handlers.
+[ring-json](https://github.com/ring-clojure/ring-json) handles JSON (de)serialization.
+
 
 ## Usage
 
