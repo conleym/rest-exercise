@@ -21,7 +21,8 @@
 
   :plugins [[lein-ring "0.12.0"]]
   :ring {:handler rest-exercise.app/app
-         :nrepl {:start? yes}}
+         :nrepl {:start? yes}
+         :init rest-exercise.storage/init}
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}
              :dev {:dependencies [[ring/ring-mock "0.3.1"]]}})

@@ -44,7 +44,7 @@
 
 (defn- validate-post-params
   "Given a parameter map, produce a list of missing required
-  parameters for POST requests."
+  parameter names for POST requests."
   [params]
   ;; params keys are keywords. Convert list of keywords with blank
   ;; values to a list of strings to make an intelligable message for
@@ -83,11 +83,6 @@
   (POST number-endpoint [] post)
   (GET (str number-endpoint "/:number/:context") [number context] (get-entity number context))
   (route/not-found r/not-found))
-
-
-;; Load data from the csv file. Skip during AOT.
-(if-not *compile-files*
-  (storage/init))
 
 
 ;; This exists to make potential customization/experimentation with

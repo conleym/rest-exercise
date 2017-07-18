@@ -38,9 +38,6 @@
 (def ^:private state (ref {:table #{}
                            :index {}}))
 
-;; has init been accomplished? used to avoid re-init on hot-reload.
-(def ^:private initialized (ref nil))
-
 
 (defn- index-lookup
   [index-entry]
@@ -123,10 +120,8 @@
 (defn init
   "Initialize the storage subsystem."
   []
-  (when-not @initialized
-    (log/info "Initializing storage subsystem.")
-    (let [csv-file (resource "interview-callerid-data.csv")]
-      (with-open [reader (io/reader csv-file :encoding "UTF-8")]
-        (load-csv-records (csv/read-csv reader))))
-    (dosync (ref-set initialized true))
-    (log/info "Initialization complete. Added" (count (:table @state)) "entries.")))
+  (log/info "Initializing storage subsystem.")
+  (let [csv-file (resource "interview-callerid-data.csv")]
+    (with-open [reader (io/reader csv-file :encoding "UTF-8")]
+      (load-csv-records (csv/read-csv reader))))
+  (log/info "Initialization complete. Added" (count (:table @state)) "entries."))
