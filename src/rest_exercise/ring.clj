@@ -1,6 +1,7 @@
 (ns rest-exercise.ring
   "Ring utilities."
-  (:require [ring.util.codec :as codec]
+  (:require [clojure.string :as str]
+            [ring.util.codec :as codec]
             [ring.util.http-status :as rstatus]
             [ring.util.response :refer [response response? status]]))
 
@@ -27,7 +28,7 @@
   This is useful for responses requiring, e.g., a Location header."
   [request path-elements]
   (let [encoded-elements (map codec/url-encode path-elements)
-        path (apply str (interpose "/" encoded-elements))]
+        path (str/join "/" encoded-elements)]
     ;; See also
     ;; https://github.com/ring-clojure/ring/blob/master/ring-core/src/ring/util/request.clj#L5-L11
     ;;

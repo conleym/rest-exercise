@@ -3,7 +3,7 @@
   (:require [rest-exercise.entity :as entity]
             [rest-exercise.storage :as storage]
             [rest-exercise.ring :as r]
-            [clojure.string :refer [blank?]]
+            [clojure.string :as str]
             [clojure.tools.logging :as log]
             [ring.logger :as logger]
             [ring.middleware.json :refer [wrap-json-response]]
@@ -26,7 +26,7 @@
       (let [canonical (entity/canonicalize-number number)
             ;; Use `into []` to force a vector. It seems cheshire can't
             ;; serialize lazy sequences.
-            results (into [] (storage/find-by-number canonical))]
+            results (vec (storage/find-by-number canonical))]
         (log/info "Query for" number "found" (count results) "results")
         (response {:results results}))
       (catch NumberParseException e
@@ -49,8 +49,8 @@
   ;; params keys are keywords. Convert list of keywords with blank
   ;; values to a list of strings to make an intelligable message for
   ;; clients.
-  (let [missing-kws (filter #(blank? (get params %)) [:name :number :context])]
-    (into [] (map #(str "'" (name %) "'") missing-kws))))
+  (let [missing-kws (filter #(str/blank? (get params %)) [:name :number :context])]
+    (vec (map #(str "'" (name %) "'") missing-kws))))
 
 
 (defn- post
@@ -60,7 +60,7 @@
     (log/info "POST request with params " params)
     (if (seq validation-result)
       (r/bad-request (str "The following required parameters were not supplied or were blank: "
-                          (apply str (interpose ", " validation-result))))
+                          (str/join "," validation-result))))
       (try
         (let [new-entity (entity/to-entity (:params request))
               ;; Use validated and canonicalized data from new-entity to
@@ -75,7 +75,7 @@
             ;; Already exists. Point the user to it, as suggested by
             ;; https://tools.ietf.org/html/rfc7231#section-4.3.3
             (catch SQLIntegrityConstraintViolationException e (redirect url :see-other))))
-        (catch NumberParseException e (r/bad-request "Invalid 'number' provided."))))))
+        (catch NumberParseException e (r/bad-request "Invalid 'number' provided.")))))
 
 
 (defroutes app-routes
