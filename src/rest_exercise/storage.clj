@@ -32,11 +32,17 @@
 ;; State
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+(defn- initial-state
+  "Create a new, empty storage state object."
+  []
+  {:table #{}
+   :index {}})
+
+
 ;; In-memory database table (set of PhoneNumbers) and unique
 ;; index (map of PhoneNumberUniqueIndexEntries to corresponding
 ;; PhoneNumbers).
-(def ^:private state (ref {:table #{}
-                           :index {}}))
+(def ^:private state (ref (initial-state)))
 
 
 (defn- index-lookup
@@ -87,6 +93,12 @@
   "Get a lazy sequence of entries matching the given phone number."
   [number]
   (filter #(= (:number %) number) (:table @state)))
+
+
+(defn clear
+  []
+  (dosync
+   (ref-set state (initial-state))))
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;; CSV initialization
