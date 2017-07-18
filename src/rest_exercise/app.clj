@@ -5,11 +5,11 @@
             [rest-exercise.ring :as r]
             [clojure.string :as str]
             [clojure.tools.logging :as log]
+            [ring.middleware.defaults :as defaults]
             [ring.logger :as logger]
-            [ring.middleware.json :refer [wrap-json-response]]
+            [ring.middleware.json :refer [wrap-json-response wrap-json-params]]
             [ring.util.response :refer [response created redirect]]
             [compojure.core :refer :all]
-            [compojure.handler :as handler]
             [compojure.route :as route])
   (:import [java.sql SQLIntegrityConstraintViolationException]
            [com.google.i18n.phonenumbers NumberParseException]))
@@ -31,7 +31,7 @@
         (response {:results results}))
       (catch NumberParseException e
         (r/bad-request "Parameter 'number' was not a valid phone number.")))
-     (r/bad-request "Missing required parameter 'number'.")))
+    (r/bad-request "Missing required parameter 'number'.")))
 
 
 (defn- get-entity
@@ -57,10 +57,10 @@
   [request]
   (let [params (:params request)
         validation-result (validate-post-params params)]
-    (log/info "POST request with params " params)
+    (log/info "POST request with params " params ". Validation result: " validation-result)
     (if (seq validation-result)
       (r/bad-request (str "The following required parameters were not supplied or were blank: "
-                          (str/join "," validation-result))))
+                          (str/join "," validation-result)))
       (try
         (let [new-entity (entity/to-entity (:params request))
               ;; Use validated and canonicalized data from new-entity to
@@ -75,7 +75,7 @@
             ;; Already exists. Point the user to it, as suggested by
             ;; https://tools.ietf.org/html/rfc7231#section-4.3.3
             (catch SQLIntegrityConstraintViolationException e (redirect url :see-other))))
-        (catch NumberParseException e (r/bad-request "Invalid 'number' provided.")))))
+        (catch NumberParseException e (r/bad-request "Invalid 'number' provided."))))))
 
 
 (defroutes app-routes
@@ -89,8 +89,22 @@
 (if-not *compile-files*
   (storage/init))
 
+
+;; This exists to make potential customization/experimentation with
+;; ring-defaults wrappers easier, and provides a point for possible
+;; configuration with, e.g., environ.
+;;
+;; We could, for example, use environ to figure out whether to use the
+;; secure or insecure defaults.
+(defn- wrap-api
+  "Wrap a handler using ring-defaults."
+  [handler]
+  (defaults/wrap-defaults handler defaults/api-defaults))
+
+
 (def app
   (-> app-routes
-      handler/api
+      wrap-api
       wrap-json-response
+      wrap-json-params
       logger/wrap-with-logger))

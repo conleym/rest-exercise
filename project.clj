@@ -8,6 +8,7 @@
                  [org.clojure/tools.logging "0.4.0"]
                  [org.clojure/data.csv "0.1.4"]
                  [compojure "1.6.0"]
+                 [ring/ring-defaults "0.3.0"]
                  ;; ring.middleware.logger seems to be
                  ;; abandonware. Let's try this.
                  [ring-logger "0.7.7" :exclusions [org.clojure/tools.logging]]
