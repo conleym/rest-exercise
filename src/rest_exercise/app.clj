@@ -3,6 +3,7 @@
   (:require [rest-exercise.entity :as entity]
             [rest-exercise.storage :as storage]
             [rest-exercise.ring :as r]
+            [clojure.string :refer [blank?]]
             [clojure.tools.logging :as log]
             [ring.logger :as logger]
             [ring.middleware.json :refer [wrap-json-response]]
@@ -42,23 +43,40 @@
       (r/not-found))))
 
 
+(defn- validate-post-params
+  "Given a parameter map, produce a list of missing required
+  parameters for POST requests."
+  [params]
+  ;; params keys are keywords. Convert list of keywords with blank
+  ;; values to a list of strings to make an intelligable message for
+  ;; clients.
+  (let [missing-kws (filter #(blank? (get params %)) [:name :number :context])]
+    (into [] (map #(str "'" (name %) "'") missing-kws))))
+
+
 (defn- post
   [request]
-    (try
-      (let [new-entity (entity/to-entity (:params request))
-            ;; Use validated and canonicalized data from new-entity to
-            ;; build the URL of the new entity. Do not use data from
-            ;; the request.
-            url-path-elements [number-endpoint-name (:number new-entity) (:context new-entity)]
-            url (r/response-url request url-path-elements)]
-        (try
-          (do
-            (storage/add-entity new-entity)
-            (created url new-entity))
-          ;; Already exists. Point the user to it, as suggested by
-          ;; https://tools.ietf.org/html/rfc7231#section-4.3.3
-          (catch SQLIntegrityConstraintViolationException e (redirect url :see-other))))
-        (catch NumberParseException e (r/bad-request "Invalid phone number provided."))))
+  (let [params (:params request)
+        validation-result (validate-post-params params)]
+    (log/info "POST request with params " params)
+    (if (seq validation-result)
+      (r/bad-request (str "The following required parameters were not supplied or were blank: "
+                          (apply str (interpose ", " validation-result))))
+      (try
+        (let [new-entity (entity/to-entity (:params request))
+              ;; Use validated and canonicalized data from new-entity to
+              ;; build the URL of the new entity. Do not use data from
+              ;; the request.
+              url-path-elements [number-endpoint-name (:number new-entity) (:context new-entity)]
+              url (r/response-url request url-path-elements)]
+          (try
+            (do
+              (storage/add-entity new-entity)
+              (created url new-entity))
+            ;; Already exists. Point the user to it, as suggested by
+            ;; https://tools.ietf.org/html/rfc7231#section-4.3.3
+            (catch SQLIntegrityConstraintViolationException e (redirect url :see-other))))
+        (catch NumberParseException e (r/bad-request "Invalid 'number' provided."))))))
 
 
 (defroutes app-routes
