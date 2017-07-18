@@ -25,4 +25,5 @@
          :init rest-exercise.storage/init}
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all}
-             :dev {:dependencies [[ring/ring-mock "0.3.1"]]}})
+             :dev {:dependencies [[ring/ring-mock "0.3.1"]
+                                  [org.clojure/math.combinatorics "0.1.4"]]}})
