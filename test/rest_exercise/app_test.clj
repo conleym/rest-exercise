@@ -33,6 +33,12 @@
       (expect-not-found response))))
 
 
+(deftest test-bad-query
+  (testing "Query with invalid number returns bad request."
+    (let [response (app (query-get-req "$$$"))]
+      (expect-bad-request response))))
+
+
 (deftest test-bad-posts
   (let [all-subsets (comb/subsets ["name" "number" "context"])
         bad-subsets (filter #(< (count % ) 3) all-subsets)]
