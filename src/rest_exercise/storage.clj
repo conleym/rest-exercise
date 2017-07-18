@@ -45,6 +45,10 @@
 
 
 (defn find-by-number-and-context
+  "Look up an entity matching both the provided number and context.
+
+  Uniqueness constraints guarantee at most one result. Returns nil if
+  none is found."
   [number context]
   (index-lookup (PhoneNumberUniqueIndexEntry. number context)))
 

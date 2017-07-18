@@ -28,17 +28,24 @@
 
 
 (defn seq-to-entity
-  "Create a new storage entry representing the data in the sequence."
+  "Create a new storage entry representing the data in the sequence.
+
+  The sequence is expected to contain (in order): number, context, and
+  name."
   [[number context name]]
   (PhoneNumber. name (canonicalize-number number) context))
 
 
 (defn entity?
+  "Boolean entity test. true iff the argument is an entity."
   [arg]
   (instance? PhoneNumber arg))
 
 
 (defn to-entity
+  "Convert maps and sequences to entities.
+
+  For convenience, entities are also accepted and simply returned."
   [arg]
   (if (entity? arg) arg)
   (if (seq? arg) (seq-to-entity arg))

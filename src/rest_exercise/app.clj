@@ -20,6 +20,7 @@
 
 
 (defn- query
+  "query endpoint implementation."
   [request]
   (if-let [number (get-in request [:params :number])]
     (try
@@ -54,6 +55,7 @@
 
 
 (defn- post
+  "number POST endpoint implementation."
   [request]
   (let [params (:params request)
         validation-result (validate-post-params params)]
