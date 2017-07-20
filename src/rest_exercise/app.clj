@@ -51,8 +51,12 @@
   ;; params keys are keywords. Convert list of keywords with blank
   ;; values to a list of strings to make an intelligable message for
   ;; clients.
-  (let [missing-kws (filter #(str/blank? (get params %)) [:name :number :context])]
-    (vec (map #(str "'" (name %) "'") missing-kws))))
+  (let [param-names [:name :number :context]
+        get-param (fn [key] (get params key))
+        string-values (filter #(string? (get-param %)) param-names)
+        non-string-values (remove (set string-values) param-names)
+        missing-kws (filter #(str/blank? (get-param %)) string-values)]
+    (vec (map #(str "'" (name %) "'") (concat non-string-values missing-kws)))))
 
 
 (defn- post
@@ -62,7 +66,7 @@
         validation-result (validate-post-params params)]
     (log/info "POST request with params" params ". Validation result:" validation-result)
     (if (seq validation-result)
-      (r/bad-request (str "The following required parameters were not supplied or were blank: "
+      (r/bad-request (str "The following required parameters were not supplied, were blank or had non-string values: "
                           (str/join "," validation-result)))
       (try
         (let [new-entity (entity/to-entity (:params request))

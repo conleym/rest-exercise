@@ -52,6 +52,10 @@
         (let [param-map (map-with-keys "999" param-names)]
           (expect-bad-request (app (number-post-req param-map)))
           (expect-bad-request (app (number-post-req param-map :json? true)))))))
+  (testing "Non-conforming JSON"
+    (expect-bad-request (app (mock/content-type (number-post-req {"name" "some name"
+                                                                  "number" "some number"
+                                                                  "context" {"not" "valid"}})))))
   (testing "Invalid JSON"
     (expect-bad-request (app (mock/content-type (simple-number-post-req "{") json-mime-type)))))
 
