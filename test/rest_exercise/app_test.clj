@@ -86,6 +86,7 @@
         expected-query-result {"results" [expected-map]}
         canonical-number (get expected-map "number")]
     (expect-created response)
+    (expect-json-content-type response)
     (is (= expected-map
            (json/parse-string (:body response))))
     (let [response (good-post params expected-url json?)]
@@ -93,16 +94,19 @@
     (let [response (app (number-get-req canonical-number
                                         (get expected-map "context")))]
       (expect-ok response)
+      (expect-json-content-type response)
       (is (= expected-map
              (json/parse-string (:body response)))))
     ;; Test query with canonicalized E.164 number.
     (let [response (app (query-get-req canonical-number))]
       (expect-ok response)
+      (expect-json-content-type response)
       (is (= expected-query-result
              (json/parse-string (:body response)))))
     ;; Test query with original number.
     (let [response (app (query-get-req (get params "number")))]
       (expect-ok response)
+      (expect-json-content-type response)
       (is (= expected-query-result)
              (json/parse-string (:body response))))))
 

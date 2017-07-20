@@ -97,7 +97,13 @@
 (defn- wrap-api
   "Wrap a handler using ring-defaults."
   [handler]
-  (defaults/wrap-defaults handler defaults/api-defaults))
+  ;; Turn ring-content-types off. We have no file-type extensions, so
+  ;; it just adds application/octet stream to everything, which isn't
+  ;; useful.
+  (let [config (assoc-in defaults/api-defaults
+                         [:responses :content-types]
+                         false)]
+    (defaults/wrap-defaults handler config)))
 
 
 (def app

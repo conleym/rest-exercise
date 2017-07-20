@@ -8,11 +8,21 @@
             [rest-exercise.ring :as r]))
 
 
-(def ^:constant json-mime-type "application/json")
-
 ;; Fake base URLs for testing.
 (def ^:private ^:constant app-base-url "http://app.local:8081")
 (def ^:private number-endpoint-url (str app-base-url number-endpoint))
+
+
+;; As defined in ring-json. Using a MIME type parsing library rather
+;; than testing for equality would be better, but for this simple
+;; exercise, this will do.
+(def ^:constant json-mime-type "application/json; charset=utf-8")
+
+
+(defn expect-json-content-type
+  [response]
+  (is (= json-mime-type
+         (get-in response [:headers "Content-Type"]))))
 
 
 (defn expect-status
@@ -89,4 +99,5 @@
 (defn expect-empty-query-results
   [response]
   (expect-ok response)
+  (expect-json-content-type)
   (is (= empty-results (json/parse-string (:body response)))))
