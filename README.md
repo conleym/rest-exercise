@@ -80,7 +80,7 @@ text message.
 
 ### POST notes
 
-The `/number` endpoint accepts both JSON an form parameters. The
+The `/number` endpoint accepts both JSON and form parameters. The
 `Content-Type` header must be set appropriately.
 
 All three parameters must be present and nonempty. Violations give a
