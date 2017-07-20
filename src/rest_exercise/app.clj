@@ -26,7 +26,7 @@
   (if-let [number (get-in request [:params :number])]
     (try
       (let [canonical (entity/canonicalize-number number)
-            ;; Use `into []` to force a vector. It seems cheshire can't
+            ;; Use `vec` to force a vector. It seems cheshire can't
             ;; serialize lazy sequences.
             results (vec (storage/find-by-number canonical))]
         (log/info "Query for" number "found" (count results) "results")
