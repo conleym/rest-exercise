@@ -3,21 +3,26 @@
   (:require [clojure.string :as str]
             [ring.util.codec :as codec]
             [ring.util.http-status :as rstatus]
-            [ring.util.response :refer [response response? status]]))
+            [ring.util.response :refer [response response? status content-type]]))
+
+
+(def ^:const ^:private err-mime-type "text/plain")
 
 
 (defn not-found
   "404 handler for the phone number API."
   [& ignored]
-  (status (response "") rstatus/not-found))
+  (content-type (status (response "") rstatus/not-found) err-mime-type))
 
 
 (defn bad-request
   "400 handler for the phone number API."
   [resp]
-  (if (response? resp)
-    (status resp rstatus/bad-request)
-    (status (response resp) rstatus/bad-request)))
+  (content-type
+   (if (response? resp)
+     (status resp rstatus/bad-request)
+     (status (response resp) rstatus/bad-request))
+   err-mime-type))
 
 
 (defn response-url
