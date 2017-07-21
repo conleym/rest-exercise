@@ -55,9 +55,11 @@
   (testing "Non-conforming JSON"
     (expect-bad-request (app (mock/content-type (number-post-req {"name" "some name"
                                                                   "number" "some number"
-                                                                  "context" {"not" "valid"}})))))
+                                                                  "context" {"not" "valid"}})
+                                                json-mime-type))))
   (testing "Invalid JSON"
-    (expect-bad-request (app (mock/content-type (simple-number-post-req "{") json-mime-type)))))
+    (expect-bad-request (app (mock/content-type (simple-number-post-req "{")
+                                                json-mime-type)))))
 
 
 (defn- good-post
