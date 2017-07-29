@@ -27,7 +27,8 @@
   (testing "Nonsensical URL returns 404 not found."
     (expect-not-found (app (mock/request :get "/xxxxxx"))))
   (testing "Query with empty store returns no results."
-    (let [response (app (query-get-req "999"))]))
+    (let [response (app (query-get-req "999"))]
+      (expect-empty-query-results response)))
   (testing "GET of specific resource with empty store returns 404 not found."
     (let [response (app (number-get-req "999" "somecontext"))]
       (expect-not-found response))))

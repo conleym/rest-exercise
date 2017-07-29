@@ -93,11 +93,11 @@
 
 
 (def empty-results
-  {:results []})
+  {"results" []})
 
 
 (defn expect-empty-query-results
   [response]
   (expect-ok response)
-  (expect-json-content-type)
+  (expect-json-content-type response)
   (is (= empty-results (json/parse-string (:body response)))))
